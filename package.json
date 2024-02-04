@@ -1,0 +1,24 @@
+{
+  "name": "cloven",
+  "version": "1.0.0",
+  "description": "For Accessing The Cloven Panel Through The Terminal",
+  "main": "index.js",
+  "bin": "./index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test.js"
+  },
+  "author": "blueobsidian",
+  "license": "MIT",
+  "dependencies": {
+    "archiver": "^6.0.1",
+    "axios": "^1.6.7",
+    "chalk": "^5.3.0",
+    "cli-progress": "^2.1.1",
+    "cli-spinners": "^2.9.2",
+    "colors": "^1.4.0",
+    "nodeactyl": "^3.3.0",
+    "ssh2": "^1.15.0",
+    "ssh2-sftp-client": "^10.0.3"
+  }
+}
