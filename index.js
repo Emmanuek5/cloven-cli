@@ -33,6 +33,8 @@ const {
   formatCpuAbsolute,
   formatMegabytes,
 } = require("./utils/functions");
+const { exec } = require("child_process");
+const { ServerBuilder } = require("nodeactyl");
 const logger = {
   info: (message) => {
     console.log(green(message));
@@ -96,6 +98,63 @@ if (args[0] === "login") {
   fs.writeFileSync(path.join(__dirname, "config.json"), JSON.stringify(config));
   console.log(green("API key set successfully"));
   process.exit(1);
+}
+
+if (args[0] === "set_api_key") {
+  config.api_key = args[1];
+  fs.writeFileSync(path.join(__dirname, "config.json"), JSON.stringify(config));
+  console.log(green("API key set successfully"));
+  process.exit(1);
+}
+if (args[0] === "create_config") {
+  const config = `SERVER_ID = YOUR_SERVER_ID`;
+  fs.writeFileSync(path.join(process.cwd(), ".cloven_config"), config);
+  console.log(green("Created .cloven_config file"));
+  process.exit(1);
+}
+
+if (args[0] === "init") {
+  let spinner = createSpinner(
+    "Initializing a new cloven nodejs environment..."
+  );
+  try {
+    //initialize a new nodejs environment but include the .cloven_config file
+    const cloven_file = path.join(process.cwd(), ".cloven_config");
+    if (!fs.existsSync(cloven_file)) {
+      fs.writeFileSync(
+        path.join(process.cwd(), ".cloven_config"),
+        fs.readFileSync(path.join(__dirname, "default.cloven_config"), "utf8")
+      );
+    }
+    logger.info("Initializing nodejs environment...");
+    exec("npm init -y", (error, stdout, stderr) => {
+      if (error) {
+        logger.error(`error: ${error.message}`);
+        return;
+      }
+      if (stderr) {
+        logger.error(`stderr: ${stderr}`);
+        return;
+      }
+    });
+    let message = "";
+    message += colors.white(
+      "Go to https://manage.clovenbots.com/ and create a new server"
+    );
+    message += "\n";
+    message += colors.white(
+      "Then copy the server ID and paste it in the .cloven_config file"
+    );
+    message += "\n";
+    message += colors.white("Done. Run: npm start");
+    logger.info(colors.blue(message));
+    fs.writeFileSync(path.join(process.cwd(), "index.js"), "");
+    spinner.succeed("Initialized a new cloven nodejs environment");
+  } catch (error) {
+    spinner.fail("Failed to initialize a new cloven nodejs environment");
+    console.log(error);
+  }
+  return;
 }
 
 if (args[0] === "upload") {
@@ -225,12 +284,6 @@ if (args[0] === "upload") {
     });
 
   return;
-}
-if (args[0] === "create_config") {
-  const config = `SERVER_ID = YOUR_SERVER_ID`;
-  fs.writeFileSync(path.join(process.cwd(), ".cloven_config"), config);
-  console.log(green("Created .cloven_config file"));
-  process.exit(1);
 }
 
 if (args[0] === "usage") {
