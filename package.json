@@ -1,11 +1,12 @@
 {
   "name": "cloven",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "For Accessing The Cloven Panel Through The Terminal",
   "main": "index.js",
   "bin": "./index.js",
   "displayName": "Cloven CLI Tool",
   "scripts": {
+    "postinstall": "node ./scripts/postinstall.js",
     "start": "node index.js",
     "test": "node test.js"
   },
