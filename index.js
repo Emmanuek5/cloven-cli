@@ -219,65 +219,85 @@ if (args[0] === "upload") {
         }
       }
 
-      // Create a zip file excluding .node_modules directory
-      const zipFileName = "archive.zip";
-      const output = fs.createWriteStream(zipFileName);
-      const archive = archiver("zip");
-      output.on("close", async () => {
-        logger.info("Project has been compressed, uploading...");
-        // Specify the remote path where you want to upload the file
-        const remoteFilePath = "/" + zipFileName;
-        const uploadingSpinner = createSpinner("Uploading files to server...");
-        try {
-          await uploadToServer(zipFileName, remoteFilePath, sftp);
-          client.deCompressFileOnServer(server.identifier, zipFileName);
-          client.deleteFilesFromServer(server.identifier, [zipFileName]);
+      try {
+        // Create a zip file excluding .node_modules directory
+        const zipFileName = "archive.zip";
+        const output = fs.createWriteStream(zipFileName);
+        const archive = archiver("zip");
+        output.on("close", async () => {
+          logger.info("Project has been compressed, uploading...");
 
-          uploadingSpinner.succeed("Files uploaded successfully.");
+          // Specify the remote path where you want to upload the file
+          const remoteFilePath = "/" + zipFileName;
+          const uploadingSpinner = createSpinner(
+            "Uploading files to server..."
+          );
+          try {
+            await uploadToServer(zipFileName, remoteFilePath, sftp);
+            uploadingSpinner.succeed("Files uploaded successfully.");
 
-          const restart = await getRestart();
-          if (restart) {
-            await client.restartServer(server.identifier);
-            logger.info("Server has been restarted.");
+            const decompressSpinner = createSpinner(
+              "Decompressing files on server..."
+            );
+            await client.deCompressFileOnServer(server.identifier, zipFileName);
+            decompressSpinner.succeed("Files decompressed on server.");
+
+            const deleteSpinner = createSpinner(
+              "Deleting temporary files on server..."
+            );
+            await client.deleteFilesFromServer(server.identifier, [
+              zipFileName,
+            ]);
+            deleteSpinner.succeed("Temporary files deleted on server.");
+
+            const restart = await getRestart();
+            if (restart) {
+              const restartSpinner = createSpinner("Restarting server...");
+              await client.restartServer(server.identifier);
+              restartSpinner.succeed("Server restarted successfully.");
+              logger.info("Server has been restarted.");
+            }
+          } catch (error) {
+            uploadingSpinner.fail(`File upload failed. ${red(error.message)}`);
+            logger.error(`File upload failed. ${error.message}`);
+          } finally {
+            // Disconnect the SFTP client
+            await sftp.end();
           }
-        } catch (error) {
-          uploadingSpinner.fail(`File upload failed. ${red(error.message)}`);
-          logger.error(`File upload failed. ${error.message}`);
-        } finally {
-          // Disconnect the SFTP client
-          await sftp.end();
-        }
 
-        return;
-      });
+          return;
+        });
 
-      archive.pipe(output);
+        archive.pipe(output);
 
-      // Add all files in the current directory to the archive excluding .node_modules
-      archive.glob("**/*", {
-        ignore: [
-          "node_modules/**",
-          "node_modules",
-          ".cloven_config",
-          zipFileName,
-        ], // Exclude .node_modules directory , .cloven_config file and zip file
-      });
+        // Add all files in the current directory to the archive excluding .node_modules
+        archive.glob("**/*", {
+          ignore: [
+            "node_modules/**",
+            "node_modules",
+            ".cloven_config",
+            zipFileName,
+          ], // Exclude .node_modules directory , .cloven_config file and zip file
+        });
 
-      const progressBar = createProgressBar(1);
-      progressBar.start(1, 0);
+        const progressBar = createProgressBar(1);
+        progressBar.start(1, 0);
 
-      archive.on("progress", (progress) => {
-        if (progress.eta < 0) {
-          progressBar.update(progress.entries.processed, {
-            eta: "Calculating...",
-          });
-        } else {
-          progressBar.update(progress.entries.processed);
-        }
-      });
+        archive.on("progress", (progress) => {
+          if (progress.eta < 0) {
+            progressBar.update(progress.entries.processed, {
+              eta: "Calculating...",
+            });
+          } else {
+            progressBar.update(progress.entries.processed);
+          }
+        });
 
-      await archive.finalize();
-      progressBar.stop();
+        await archive.finalize();
+        progressBar.stop();
+      } catch (error) {
+        console.log(red(error));
+      }
     })
     .catch((err) => {
       console.log(red(err));
