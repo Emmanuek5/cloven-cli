@@ -222,6 +222,9 @@ if (args[0] === "upload") {
       try {
         // Create a zip file excluding .node_modules directory
         const zipFileName = "archive.zip";
+        if (fs.existsSync(zipFileName)) {
+          fs.unlinkSync(zipFileName);
+        }
         const output = fs.createWriteStream(zipFileName);
         const archive = archiver("zip");
         output.on("close", async () => {
@@ -271,15 +274,16 @@ if (args[0] === "upload") {
         archive.pipe(output);
 
         // Add all files in the current directory to the archive excluding .node_modules
-        archive.glob("**/*", {
-          ignore: [
-            "node_modules/**",
-            "node_modules",
-            ".cloven_config",
-            zipFileName,
-          ], // Exclude .node_modules directory , .cloven_config file and zip file
-        });
-
+        const ignore = [
+          "node_modules/**",
+          "node_modules",
+          ".cloven_config",
+          zipFileName,
+          ...(Array.isArray(server_Config.SKIP_FILES)
+            ? server_Config.SKIP_FILES
+            : server_Config.SKIP_FILES.split(",").map((file) => file.trim())),
+        ];
+        archive.glob("**/*", { ignore });
         const progressBar = createProgressBar(1);
         progressBar.start(1, 0);
 
