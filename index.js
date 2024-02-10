@@ -257,11 +257,6 @@ if (args[0] === "upload") {
               restartSpinner.succeed("Server restarted successfully.");
               logger.info("Server has been restarted.");
             }
-            fs.unlink(path.join(process.cwd(), zipFileName), (err) => {
-              if (err) {
-                console.log(err);
-              }
-            });
           } catch (error) {
             uploadingSpinner.fail(`File upload failed. ${red(error.message)}`);
             logger.error(`File upload failed. ${error.message}`);
@@ -277,7 +272,12 @@ if (args[0] === "upload") {
 
         // Add all files in the current directory to the archive excluding .node_modules
         archive.glob("**/*", {
-          ignore: ["node_modules/**", "node_modules", ".cloven_config"], // Exclude .node_modules directory , .cloven_config file and zip file
+          ignore: [
+            "node_modules/**",
+            "node_modules",
+            ".cloven_config",
+            zipFileName,
+          ], // Exclude .node_modules directory , .cloven_config file and zip file
         });
 
         const progressBar = createProgressBar(1);
