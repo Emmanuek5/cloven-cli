@@ -1,6 +1,6 @@
 {
   "name": "cloven",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "For Accessing The Cloven Panel Through The Terminal",
   "main": "index.js",
   "bin": "./index.js",
